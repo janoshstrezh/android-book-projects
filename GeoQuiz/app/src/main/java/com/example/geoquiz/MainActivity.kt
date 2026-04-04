@@ -25,7 +25,8 @@ class MainActivity : AppCompatActivity() {
     )
 
     private var currentIndex = 0
-
+    var countCorrectAnswers = 0
+    var countAnswers = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +56,55 @@ class MainActivity : AppCompatActivity() {
         updateQuestion()
     }
 
+
+
+    private fun blockedButtons(){
+        trueButton.isEnabled = false
+        falseButton.isEnabled = false
+    }
+
+    private fun updateButtons(){
+        trueButton.isEnabled = true
+        falseButton.isEnabled = true
+    }
+
+    private fun updateQuestion() {
+        val questionTextResId = questionBank[currentIndex].textResId
+        questionTextView.setText(questionTextResId)
+
+        if (questionBank[currentIndex].isAnswered){
+            blockedButtons()
+        }
+        else {
+            updateButtons()
+        }
+
+
+
+    }
+
+    private fun checkAnswer(userAnswer: Boolean) {
+        countAnswers++
+        var messageResId = 0
+        val correctAnswer = questionBank[currentIndex].answer
+        blockedButtons()
+        questionBank[currentIndex].isAnswered = true
+        if (userAnswer == correctAnswer){
+            messageResId = R.string.correct_toast
+            countCorrectAnswers++
+            }
+            else messageResId = R.string.incorrect_toast
+
+        Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show()
+        if (countAnswers == questionBank.size) {
+            nextButton.isEnabled = false
+            printRes()
+        }
+    }
+
+    fun printRes() {questionTextView.text = getString(R.string.result_text, countRes())}
+    fun countRes() = (countCorrectAnswers.toDouble() / questionBank.size) * 100
+
     override fun onStart() {
         super.onStart()
         Log.d(TAG,
@@ -79,24 +129,5 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         Log.d(TAG,
             "onDestroy() called")
-    }
-
-
-    private fun updateQuestion() {
-
-        val questionTextResId = questionBank[currentIndex].textResId
-        questionTextView.setText(questionTextResId)
-
-    }
-
-    private fun checkAnswer(userAnswer: Boolean) {
-        val correctAnswer = questionBank[currentIndex].answer
-        val messageResId = if (userAnswer == correctAnswer){
-            R.string.correct_toast
-
-            }
-            else R.string.incorrect_toast
-
-        Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show()
     }
 }
