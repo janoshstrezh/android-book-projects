@@ -16,8 +16,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,8 +39,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun QuizScreen() {
-
-    var currentIndex by remember { mutableStateOf(0) }
+    // -----------------------STATE-------------------------
+    var currentIndex by rememberSaveable { mutableIntStateOf(0) }
 
     val questionBank = listOf(
         Question(R.string.question_asia, true),
@@ -50,7 +50,9 @@ fun QuizScreen() {
         Question(R.string.question_australia, true)
     )
 
+    // ---------- LOGIC ----------
     val context = LocalContext.current
+
 
     fun checkAnswer(userAnswer: Boolean ){
         if (userAnswer == questionBank[currentIndex].answer) Toast.makeText(context, R.string.correct_toast,
@@ -59,40 +61,79 @@ fun QuizScreen() {
             Toast.LENGTH_SHORT).show()
     }
 
+    fun nextQuestion(){
+        currentIndex = (currentIndex + 1) % questionBank.size
+    }
+
+    val textToShow = stringResource(questionBank[currentIndex].textResId)
+
+
+    // ---------- UI ----------
+    QuizContent(
+        textToShow = textToShow,
+        onTrueClick = { checkAnswer(true) },
+        onFalseClick = { checkAnswer(false) },
+        onNextClick = { nextQuestion() }
+    )
+
+}
+
+@Composable
+fun QuizContent(
+    textToShow: String,
+    onTrueClick: () -> Unit,
+    onFalseClick: () -> Unit,
+    onNextClick: () -> Unit
+){
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
 
-        Text(
-            text = stringResource(questionBank[currentIndex].textResId),
-            modifier = Modifier.padding(24.dp)
-        )
+        QuestionText(textToShow)
 
-        Row {
-            Button(onClick = { checkAnswer(true) }) {
-                Text(stringResource(R.string.true_button))
-            }
+        AnswersButton(onTrueClick, onFalseClick)
 
-            Button(onClick = { checkAnswer(false) }) {
-                Text(stringResource(R.string.false_button))
-            }
+        NextButton(onNextClick)
+    }
+}
+
+@Composable
+fun QuestionText(text: String) {
+    Text(
+        text = text,
+        modifier = Modifier.padding(24.dp)
+    )
+}
+
+@Composable
+fun AnswersButton(
+    onTrueClick: () -> Unit,
+    onFalseClick: () -> Unit){
+    Row {
+        Button(onClick =  onTrueClick ) {
+            Text(stringResource(R.string.true_button))
         }
 
-        Button(onClick = {
-            currentIndex = (currentIndex + 1) % questionBank.size
-        }) {
-            Text(stringResource(R.string.next_button))
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                painter = painterResource(R.drawable.arrow_right),
-                contentDescription = "Next"
-            )
+        Button(onClick = onFalseClick ) {
+            Text(stringResource(R.string.false_button))
         }
     }
 }
 
+@Composable
+fun NextButton(onNextButton: () -> Unit){
+    Button(onClick = onNextButton
+    ) {
+        Text(stringResource(R.string.next_button))
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            painter = painterResource(R.drawable.arrow_right),
+            contentDescription = "Next"
+        )
+    }
+}
 
 
 @Preview(showBackground = true)
