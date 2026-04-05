@@ -43,9 +43,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun QuizScreen() {
 
+    // ---------- STATE ----------
     var currentIndex by rememberSaveable { mutableIntStateOf(0) }
     var correctAnswersCount by rememberSaveable { mutableIntStateOf(0) }
-
 
     val questionBank = rememberSaveable {
         mutableStateListOf(
@@ -57,22 +57,8 @@ fun QuizScreen() {
         )
     }
 
+    // ---------- DERIVED STATE ----------
     val isAllAnswers = questionBank.all { it.isAnswered }
-    val context = LocalContext.current
-
-    fun checkAnswer(userAnswer: Boolean ){
-        questionBank[currentIndex] = questionBank[currentIndex].copy(isAnswered = true)
-        if (userAnswer == questionBank[currentIndex].answer){
-            correctAnswersCount++
-            Toast.makeText(context, R.string.correct_toast,
-                Toast.LENGTH_SHORT).show()
-        }
-        else {
-            Toast.makeText(context, R.string.incorrect_toast,
-                Toast.LENGTH_SHORT).show()
-        }
-
-    }
 
     fun countRes(): Int {
         val correct = correctAnswersCount
@@ -80,56 +66,120 @@ fun QuizScreen() {
         return (correct * 100) / total
     }
 
+    val textToShow =
+        if (!isAllAnswers)
+            stringResource(questionBank[currentIndex].textResId)
+        else
+            stringResource(R.string.result_text, countRes())
+
+    // ---------- LOGIC ----------
+    val context = LocalContext.current
+
+    fun checkAnswer(userAnswer: Boolean) {
+        questionBank[currentIndex] =
+            questionBank[currentIndex].copy(isAnswered = true)
+
+        if (userAnswer == questionBank[currentIndex].answer) {
+            correctAnswersCount++
+            Toast.makeText(context, R.string.correct_toast, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, R.string.incorrect_toast, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun nextQuestion() {
+        currentIndex = (currentIndex + 1) % questionBank.size
+    }
+
+    // ---------- UI ----------
+    QuizContent(
+        textToShow = textToShow,
+        isAnswered = questionBank[currentIndex].isAnswered,
+        isAllAnswers = isAllAnswers,
+        onTrueClick = { checkAnswer(true) },
+        onFalseClick = { checkAnswer(false) },
+        onNextClick = { nextQuestion() }
+    )
+}
+
+@Composable
+fun QuizContent(
+    textToShow: String,
+    isAnswered: Boolean,
+    isAllAnswers: Boolean,
+    onTrueClick: () -> Unit,
+    onFalseClick: () -> Unit,
+    onNextClick: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        val textToShow =
-            if (!isAllAnswers)
-                stringResource(questionBank[currentIndex].textResId)
-            else
-                stringResource(R.string.result_text, countRes())
-        Text(
 
-            text = textToShow,
-            modifier = Modifier.padding(24.dp)
+        QuestionText(textToShow)
+
+        AnswerButtons(
+            isAnswered = isAnswered,
+            onTrueClick = onTrueClick,
+            onFalseClick = onFalseClick
         )
 
-        Row {
-            Button(onClick = {
-                checkAnswer(true)
-            },
-                enabled = !questionBank[currentIndex].isAnswered
-                ) {
-                Text(stringResource(R.string.true_button))
+        NextButton(
+            isAllAnswers = isAllAnswers,
+            onNextClick = onNextClick
+        )
+    }
+}
 
-            }
+@Composable
+fun QuestionText(text: String) {
+    Text(
+        text = text,
+        modifier = Modifier.padding(24.dp)
+    )
+}
 
-            Button(onClick = {
-                checkAnswer(false)
-            },
-                enabled = !questionBank[currentIndex].isAnswered
-                ) {
-                Text(stringResource(R.string.false_button))
-            }
+@Composable
+fun AnswerButtons(
+    isAnswered: Boolean,
+    onTrueClick: () -> Unit,
+    onFalseClick: () -> Unit
+) {
+    Row {
+        Button(
+            onClick = onTrueClick,
+            enabled = !isAnswered
+        ) {
+            Text(stringResource(R.string.true_button))
         }
 
-        Button(onClick = {
-            currentIndex = (currentIndex + 1) % questionBank.size
-        },
-            enabled = !isAllAnswers
-            ) {
-            Text(stringResource(R.string.next_button))
-            Spacer(modifier = Modifier.width(8.dp))
-            Icon(
-                painter = painterResource(R.drawable.arrow_right),
-                contentDescription = "Next"
-            )
+        Button(
+            onClick = onFalseClick,
+            enabled = !isAnswered
+        ) {
+            Text(stringResource(R.string.false_button))
         }
     }
 }
 
+@Composable
+fun NextButton(
+    isAllAnswers: Boolean,
+    onNextClick: () -> Unit
+) {
+    Button(
+        onClick = onNextClick,
+        enabled = !isAllAnswers
+    ) {
+        Text(stringResource(R.string.next_button))
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            painter = painterResource(R.drawable.arrow_right),
+            contentDescription = "Next"
+        )
+    }
+}
 
 
 @Preview(showBackground = true)
