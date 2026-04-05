@@ -14,4 +14,6 @@
 
     <string name="correct_toast">Correct!</string>
     <string name="incorrect_toast">Incorrect!</string>
+
+    <string name="result_text">Correct answers: %1d%%</string>
 </resources>

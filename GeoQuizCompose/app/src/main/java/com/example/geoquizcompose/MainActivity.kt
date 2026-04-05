@@ -16,8 +16,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,23 +43,41 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun QuizScreen() {
 
-    var currentIndex by remember { mutableStateOf(0) }
+    var currentIndex by rememberSaveable { mutableIntStateOf(0) }
+    var correctAnswersCount by rememberSaveable { mutableIntStateOf(0) }
 
-    val questionBank = listOf(
-        Question(R.string.question_asia, true),
-        Question(R.string.question_africa, false),
-        Question(R.string.question_oceans, true),
-        Question(R.string.question_mideast, false),
-        Question(R.string.question_australia, true)
-    )
 
+    val questionBank = rememberSaveable {
+        mutableStateListOf(
+            Question(R.string.question_asia, true),
+            Question(R.string.question_africa, false),
+            Question(R.string.question_oceans, true),
+            Question(R.string.question_mideast, false),
+            Question(R.string.question_australia, true)
+        )
+    }
+
+    val isAllAnswers = questionBank.all { it.isAnswered }
     val context = LocalContext.current
 
     fun checkAnswer(userAnswer: Boolean ){
-        if (userAnswer == questionBank[currentIndex].answer) Toast.makeText(context, R.string.correct_toast,
-            Toast.LENGTH_SHORT).show()
-        else Toast.makeText(context, R.string.incorrect_toast,
-            Toast.LENGTH_SHORT).show()
+        questionBank[currentIndex] = questionBank[currentIndex].copy(isAnswered = true)
+        if (userAnswer == questionBank[currentIndex].answer){
+            correctAnswersCount++
+            Toast.makeText(context, R.string.correct_toast,
+                Toast.LENGTH_SHORT).show()
+        }
+        else {
+            Toast.makeText(context, R.string.incorrect_toast,
+                Toast.LENGTH_SHORT).show()
+        }
+
+    }
+
+    fun countRes(): Int {
+        val correct = correctAnswersCount
+        val total = questionBank.size
+        return (correct * 100) / total
     }
 
     Column(
@@ -64,25 +85,41 @@ fun QuizScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-
+        val textToShow =
+            if (!isAllAnswers)
+                stringResource(questionBank[currentIndex].textResId)
+            else
+                stringResource(R.string.result_text, countRes())
         Text(
-            text = stringResource(questionBank[currentIndex].textResId),
+
+            text = textToShow,
             modifier = Modifier.padding(24.dp)
         )
 
         Row {
-            Button(onClick = { checkAnswer(true) }) {
+            Button(onClick = {
+                checkAnswer(true)
+            },
+                enabled = !questionBank[currentIndex].isAnswered
+                ) {
                 Text(stringResource(R.string.true_button))
+
             }
 
-            Button(onClick = { checkAnswer(false) }) {
+            Button(onClick = {
+                checkAnswer(false)
+            },
+                enabled = !questionBank[currentIndex].isAnswered
+                ) {
                 Text(stringResource(R.string.false_button))
             }
         }
 
         Button(onClick = {
             currentIndex = (currentIndex + 1) % questionBank.size
-        }) {
+        },
+            enabled = !isAllAnswers
+            ) {
             Text(stringResource(R.string.next_button))
             Spacer(modifier = Modifier.width(8.dp))
             Icon(
